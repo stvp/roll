@@ -59,7 +59,7 @@ func stackFingerprint(title string, s stack) string {
 //
 // Examples:
 //   /usr/local/go/src/pkg/runtime/proc.c -> pkg/runtime/proc.c
-//   /home/foo/go/src/github.com/stvp/roll/rollbar.go -> github.com/stvp/roll/rollbar.go
+//   /home/foo/go/src/github.com/stvp/roll/rollbar.go -> stvp/roll/rollbar.go
 func shortenFilePath(s string) string {
 	idx := strings.Index(s, "/src/pkg/")
 	if idx != -1 {
