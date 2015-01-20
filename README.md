@@ -1,42 +1,23 @@
-rollbar
--------
+roll
+----
 
-`rollbar` is a Golang Rollbar client that makes it easy to report errors to
-Rollbar with full stacktraces. Errors are sent to Rollbar asynchronously in a
-background goroutine.
+`roll` is a simple Rollbar client for Go that makes it easy to report errors and
+messages to Rollbar. It supports all Rollbar error and message types, stack
+traces, and automatic grouping by error type and location. For more advanced
+functionality, check out [heroku/rollbar](https://github.com/heroku/rollbar).
 
-Because Go's `error` type doesn't include stack information from when it was set
-or allocated, we use the stack information from where the error was reported.
+All errors and messages are sent to Rollbar synchronously.
 
-Documentation
-=============
+[API docs on godoc.org](http://godoc.org/github.com/stvp/roll)
 
-[API docs on godoc.org](http://godoc.org/github.com/stvp/rollbar)
-
-Usage
+Notes
 =====
 
-```go
-package main
-
-import (
-  "github.com/stvp/rollbar"
-)
-
-func main() {
-  rollbar.Token = "MY_TOKEN"
-  rollbar.Environment = "production" // defaults to "development"
-
-  result, err := DoSomething()
-  if err != nil {
-    rollbar.Error(rollbar.ERR, err)
-  }
-
-  rollbar.Message("info", "Message body goes here")
-
-  rollbar.Wait()
-}
-```
+* Critical-, Error-, and Warning-level messages include a stack trace. However,
+  Go's `error` type doesn't include stack information from the location the
+  error was set or allocated. Instead, `roll` uses the stack information from
+  where the error was reported.
+* Info- and Debug-level Rollbar messages do not include stack traces.
 
 Running Tests
 =============
@@ -46,12 +27,13 @@ variable to `go test`:
 
     TOKEN=f0df01587b8f76b2c217af34c479f9ea go test
 
-And verify the reported errors manually in the Rollbar dashboard.
+Verify the reported errors manually in the Rollbar dashboard.
 
 Contributors
 ============
 
-A big thank you to everyone who has contributed pull requests and bug reports:
+This library was forked from [stvp/rollbar](https://github.com/stvp/rollbar),
+which had contributions from:
 
 * @kjk
 * @Soulou
