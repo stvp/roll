@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	NAME     = "roll"
+	NAME     = "go-roll"
 	ENDPOINT = "https://api.rollbar.com/api/1/item/"
 	VERSION  = "0.0.1"
 	LANGUAGE = "go"
