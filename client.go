@@ -63,17 +63,17 @@ func New(token, env string) Client {
 
 func Critical(err error, extras map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.criticalSkipStack(err, 3, extras)
+	return client.skipStack(CRIT, err, 3, extras)
 }
 
 func Error(err error, extras map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.errorSkipStack(err, 3, extras)
+	return client.skipStack(ERR, err, 3, extras)
 }
 
 func Warning(err error, extras map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.warningSkipStack(err, 3, extras)
+	return client.skipStack(WARN, err, 3, extras)
 }
 
 func Info(msg string, extras map[string]string) (uuid string, e error) {
@@ -85,30 +85,15 @@ func Debug(msg string, extras map[string]string) (uuid string, e error) {
 }
 
 func (c *rollbarClient) Critical(err error, extras map[string]string) (uuid string, e error) {
-	return c.criticalSkipStack(err, 3, extras)
-}
-
-func (c *rollbarClient) criticalSkipStack(err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(CRIT, err, buildStack(skip), extras)
-	return c.send(item)
+	return c.skipStack(CRIT, err, 3, extras)
 }
 
 func (c *rollbarClient) Error(err error, extras map[string]string) (uuid string, e error) {
-	return c.errorSkipStack(err, 3, extras)
-}
-
-func (c *rollbarClient) errorSkipStack(err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(ERR, err, buildStack(skip), extras)
-	return c.send(item)
+	return c.skipStack(ERR, err, 3, extras)
 }
 
 func (c *rollbarClient) Warning(err error, extras map[string]string) (uuid string, e error) {
-	return c.warningSkipStack(err, 3, extras)
-}
-
-func (c *rollbarClient) warningSkipStack(err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(WARN, err, buildStack(skip), extras)
-	return c.send(item)
+	return c.skipStack(WARN, err, 3, extras)
 }
 
 func (c *rollbarClient) Info(msg string, extras map[string]string) (uuid string, e error) {
@@ -118,6 +103,11 @@ func (c *rollbarClient) Info(msg string, extras map[string]string) (uuid string,
 
 func (c *rollbarClient) Debug(msg string, extras map[string]string) (uuid string, e error) {
 	item := c.buildMessageItem(DEBUG, msg, extras)
+	return c.send(item)
+}
+
+func (c *rollbarClient) skipStack(level string, err error, skip int, extras map[string]string) (uuid string, e error) {
+	item := c.buildTraceItem(level, err, buildStack(skip), extras)
 	return c.send(item)
 }
 
