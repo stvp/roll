@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -35,6 +37,9 @@ var (
 
 	// Environment for all items reported with the global client.
 	Environment = "development"
+
+	// Endpoint to use for request. (Allows for mocking in tests)
+	DefaultEndpoint = ENDPOINT
 )
 
 type rollbarSuccess struct {
@@ -63,17 +68,20 @@ func New(token, env string) Client {
 
 func Critical(err error, extras map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(CRIT, err, 3, extras)
+	item := client.assembleStack(CRIT, err, 3, extras)
+	return client.send(item)
 }
 
 func Error(err error, extras map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(ERR, err, 3, extras)
+	item := client.assembleStack(ERR, err, 3, extras)
+	return client.send(item)
 }
 
 func Warning(err error, extras map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(WARN, err, 3, extras)
+	item := client.assembleStack(WARN, err, 3, extras)
+	return client.send(item)
 }
 
 func Info(msg string, extras map[string]string) (uuid string, e error) {
@@ -85,15 +93,18 @@ func Debug(msg string, extras map[string]string) (uuid string, e error) {
 }
 
 func (c *rollbarClient) Critical(err error, extras map[string]string) (uuid string, e error) {
-	return c.skipStack(CRIT, err, 3, extras)
+	item := c.assembleStack(CRIT, err, 3, extras)
+	return c.send(item)
 }
 
 func (c *rollbarClient) Error(err error, extras map[string]string) (uuid string, e error) {
-	return c.skipStack(ERR, err, 3, extras)
+	item := c.assembleStack(ERR, err, 3, extras)
+	return c.send(item)
 }
 
 func (c *rollbarClient) Warning(err error, extras map[string]string) (uuid string, e error) {
-	return c.skipStack(WARN, err, 3, extras)
+	item := c.assembleStack(WARN, err, 3, extras)
+	return c.send(item)
 }
 
 func (c *rollbarClient) Info(msg string, extras map[string]string) (uuid string, e error) {
@@ -106,9 +117,20 @@ func (c *rollbarClient) Debug(msg string, extras map[string]string) (uuid string
 	return c.send(item)
 }
 
-func (c *rollbarClient) skipStack(level string, err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(level, err, buildStack(skip), extras)
-	return c.send(item)
+func (c *rollbarClient) assembleStack(level string, err error, skip int, extras map[string]string) map[string]interface{} {
+	type stackTracer interface {
+		StackTrace() errors.StackTrace
+	}
+
+	// report the original cause, with the appropriate stacktrace.
+	cerr := errors.Cause(err)
+	serr, ok := err.(stackTracer)
+	if !ok {
+		return c.buildTraceItem(level, cerr, buildStack(skip), extras)
+	}
+
+	s := unwrapStack(serr.StackTrace())
+	return c.buildTraceItem(level, cerr, s, extras)
 }
 
 func (c *rollbarClient) buildTraceItem(level string, err error, s stack, extras map[string]string) (item map[string]interface{}) {
@@ -176,7 +198,7 @@ func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err erro
 		return "", err
 	}
 
-	resp, err := http.Post(ENDPOINT, "application/json", bytes.NewReader(jsonBody))
+	resp, err := http.Post(DefaultEndpoint, "application/json", bytes.NewReader(jsonBody))
 	if err != nil {
 		return "", err
 	}
