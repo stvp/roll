@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -37,6 +39,21 @@ func buildStack(skip int) stack {
 		s = append(s, frame{file, functionName(pc), line})
 	}
 
+	return s
+}
+
+func unwrapStack(trace errors.StackTrace) stack {
+	s := make(stack, 0)
+	for _, f := range trace {
+		// pc() from errors/stack.go
+		pc := uintptr(f) - 1
+		if fn := runtime.FuncForPC(pc); fn == nil {
+			s = append(s, frame{"unknown", "unknown", -1})
+		} else {
+			file, line := fn.FileLine(pc)
+			s = append(s, frame{shortenFilePath(file), functionName(pc), line})
+		}
+	}
 	return s
 }
 
