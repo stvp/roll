@@ -46,8 +46,11 @@ type rollbarSuccess struct {
 // Client reports items to a single Rollbar project.
 type Client interface {
 	Critical(err error, custom map[string]string) (uuid string, e error)
+	CriticalWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error)
 	Error(err error, custom map[string]string) (uuid string, e error)
+	ErrorWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error)
 	Warning(err error, custom map[string]string) (uuid string, e error)
+	WarningWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error)
 	Info(msg string, custom map[string]string) (uuid string, e error)
 	Debug(msg string, custom map[string]string) (uuid string, e error)
 }
@@ -64,18 +67,27 @@ func New(token, env string) Client {
 }
 
 func Critical(err error, custom map[string]string) (uuid string, e error) {
-	client := rollbarClient{Token, Environment}
-	return client.skipStack("critical", err, 3, custom)
+	return New(Token, Environment).Critical(err, custom)
+}
+
+func CriticalWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error) {
+	return New(Token, Environment).CriticalWithStack(err, custom, ptrs)
 }
 
 func Error(err error, custom map[string]string) (uuid string, e error) {
-	client := rollbarClient{Token, Environment}
-	return client.skipStack("error", err, 3, custom)
+	return New(Token, Environment).Error(err, custom)
+}
+
+func ErrorWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error) {
+	return New(Token, Environment).ErrorWithStack(err, custom, ptrs)
 }
 
 func Warning(err error, custom map[string]string) (uuid string, e error) {
-	client := rollbarClient{Token, Environment}
-	return client.skipStack("warning", err, 3, custom)
+	return New(Token, Environment).Warning(err, custom)
+}
+
+func WarningWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error) {
+	return New(Token, Environment).WarningWithStack(err, custom, ptrs)
 }
 
 func Info(msg string, custom map[string]string) (uuid string, e error) {
@@ -87,15 +99,27 @@ func Debug(msg string, custom map[string]string) (uuid string, e error) {
 }
 
 func (c *rollbarClient) Critical(err error, custom map[string]string) (uuid string, e error) {
-	return c.skipStack("critical", err, 3, custom)
+	return c.assembleFromWalk("critical", err, 3, custom)
+}
+
+func (c *rollbarClient) CriticalWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error) {
+	return c.assembleFromPtrs("critical", err, ptrs, custom)
 }
 
 func (c *rollbarClient) Error(err error, custom map[string]string) (uuid string, e error) {
-	return c.skipStack("error", err, 3, custom)
+	return c.assembleFromWalk("error", err, 3, custom)
+}
+
+func (c *rollbarClient) ErrorWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error) {
+	return c.assembleFromPtrs("error", err, ptrs, custom)
 }
 
 func (c *rollbarClient) Warning(err error, custom map[string]string) (uuid string, e error) {
-	return c.skipStack("warning", err, 3, custom)
+	return c.assembleFromWalk("warning", err, 3, custom)
+}
+
+func (c *rollbarClient) WarningWithStack(err error, custom map[string]string, ptrs []uintptr) (uuid string, e error) {
+	return c.assembleFromPtrs("warning", err, ptrs, custom)
 }
 
 func (c *rollbarClient) Info(msg string, custom map[string]string) (uuid string, e error) {
@@ -108,8 +132,16 @@ func (c *rollbarClient) Debug(msg string, custom map[string]string) (uuid string
 	return c.send(item)
 }
 
-func (c *rollbarClient) skipStack(level string, err error, skip int, custom map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(level, err, buildStack(skip), custom)
+func (c *rollbarClient) assembleFromWalk(level string, err error, skip int, custom map[string]string) (uuid string, e error) {
+	return c.sendWithStack(level, err, walkStack(skip), custom)
+}
+
+func (c *rollbarClient) assembleFromPtrs(level string, err error, fps []uintptr, custom map[string]string) (uuid string, e error) {
+	return c.sendWithStack(level, err, buildStack(fps), custom)
+}
+
+func (c *rollbarClient) sendWithStack(level string, err error, s stack, custom map[string]string) (uuid string, e error) {
+	item := c.buildTraceItem(level, err, s, custom)
 	return c.send(item)
 }
 

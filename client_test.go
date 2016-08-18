@@ -199,3 +199,48 @@ func TestRollbarClientDebug(t *testing.T) {
 		t.Errorf("expected UUID, got: %#v", uuid)
 	}
 }
+
+func TestRollbarClientCriticalWithStack(t *testing.T) {
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
+
+	uuid, err := client.CriticalWithStack(errors.New("new client critical"), map[string]string{"extras": "true"}, testStack())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(uuid) != 32 {
+		t.Errorf("expected UUID, got: %#v", uuid)
+	}
+}
+
+func TestRollbarClientErrorWithStack(t *testing.T) {
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
+
+	uuid, err := client.ErrorWithStack(errors.New("new client error"), map[string]string{"extras": "true"}, testStack())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(uuid) != 32 {
+		t.Errorf("expected UUID, got: %#v", uuid)
+	}
+}
+
+func TestRollbarClientWarningWithStack(t *testing.T) {
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
+
+	uuid, err := client.WarningWithStack(errors.New("new client warning"), map[string]string{"extras": "true"}, testStack())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(uuid) != 32 {
+		t.Errorf("expected UUID, got: %#v", uuid)
+	}
+}
