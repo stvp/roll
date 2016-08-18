@@ -1,18 +1,19 @@
 package roll
 
 import (
+	"strings"
 	"testing"
 )
 
 func TestBuildStack(t *testing.T) {
 	frame := buildStack(1)[0]
-	if frame.Filename != "github.com/stvp/roll/stack_test.go" {
+	if !strings.HasSuffix(frame.Filename, "/roll/stack_test.go") {
 		t.Errorf("got: %s", frame.Filename)
 	}
 	if frame.Method != "roll.TestBuildStack" {
 		t.Errorf("got: %s", frame.Method)
 	}
-	if frame.Line != 8 {
+	if frame.Line != 9 {
 		t.Errorf("got: %d", frame.Line)
 	}
 }
