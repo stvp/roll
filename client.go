@@ -43,11 +43,11 @@ type rollbarSuccess struct {
 
 // Client reports items to a single Rollbar project.
 type Client interface {
-	Critical(err error, extras map[string]string) (uuid string, e error)
-	Error(err error, extras map[string]string) (uuid string, e error)
-	Warning(err error, extras map[string]string) (uuid string, e error)
-	Info(msg string, extras map[string]string) (uuid string, e error)
-	Debug(msg string, extras map[string]string) (uuid string, e error)
+	Critical(err error, custom map[string]string) (uuid string, e error)
+	Error(err error, custom map[string]string) (uuid string, e error)
+	Warning(err error, custom map[string]string) (uuid string, e error)
+	Info(msg string, custom map[string]string) (uuid string, e error)
+	Debug(msg string, custom map[string]string) (uuid string, e error)
 }
 
 type rollbarClient struct {
@@ -61,58 +61,58 @@ func New(token, env string) Client {
 	return &rollbarClient{token, env}
 }
 
-func Critical(err error, extras map[string]string) (uuid string, e error) {
+func Critical(err error, custom map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(CRIT, err, 3, extras)
+	return client.skipStack(CRIT, err, 3, custom)
 }
 
-func Error(err error, extras map[string]string) (uuid string, e error) {
+func Error(err error, custom map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(ERR, err, 3, extras)
+	return client.skipStack(ERR, err, 3, custom)
 }
 
-func Warning(err error, extras map[string]string) (uuid string, e error) {
+func Warning(err error, custom map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(WARN, err, 3, extras)
+	return client.skipStack(WARN, err, 3, custom)
 }
 
-func Info(msg string, extras map[string]string) (uuid string, e error) {
-	return New(Token, Environment).Info(msg, extras)
+func Info(msg string, custom map[string]string) (uuid string, e error) {
+	return New(Token, Environment).Info(msg, custom)
 }
 
-func Debug(msg string, extras map[string]string) (uuid string, e error) {
-	return New(Token, Environment).Debug(msg, extras)
+func Debug(msg string, custom map[string]string) (uuid string, e error) {
+	return New(Token, Environment).Debug(msg, custom)
 }
 
-func (c *rollbarClient) Critical(err error, extras map[string]string) (uuid string, e error) {
-	return c.skipStack(CRIT, err, 3, extras)
+func (c *rollbarClient) Critical(err error, custom map[string]string) (uuid string, e error) {
+	return c.skipStack(CRIT, err, 3, custom)
 }
 
-func (c *rollbarClient) Error(err error, extras map[string]string) (uuid string, e error) {
-	return c.skipStack(ERR, err, 3, extras)
+func (c *rollbarClient) Error(err error, custom map[string]string) (uuid string, e error) {
+	return c.skipStack(ERR, err, 3, custom)
 }
 
-func (c *rollbarClient) Warning(err error, extras map[string]string) (uuid string, e error) {
-	return c.skipStack(WARN, err, 3, extras)
+func (c *rollbarClient) Warning(err error, custom map[string]string) (uuid string, e error) {
+	return c.skipStack(WARN, err, 3, custom)
 }
 
-func (c *rollbarClient) Info(msg string, extras map[string]string) (uuid string, e error) {
-	item := c.buildMessageItem(INFO, msg, extras)
+func (c *rollbarClient) Info(msg string, custom map[string]string) (uuid string, e error) {
+	item := c.buildMessageItem(INFO, msg, custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) Debug(msg string, extras map[string]string) (uuid string, e error) {
-	item := c.buildMessageItem(DEBUG, msg, extras)
+func (c *rollbarClient) Debug(msg string, custom map[string]string) (uuid string, e error) {
+	item := c.buildMessageItem(DEBUG, msg, custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) skipStack(level string, err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(level, err, buildStack(skip), extras)
+func (c *rollbarClient) skipStack(level string, err error, skip int, custom map[string]string) (uuid string, e error) {
+	item := c.buildTraceItem(level, err, buildStack(skip), custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) buildTraceItem(level string, err error, s stack, extras map[string]string) (item map[string]interface{}) {
-	item = c.buildItem(level, err.Error(), extras)
+func (c *rollbarClient) buildTraceItem(level string, err error, s stack, custom map[string]string) (item map[string]interface{}) {
+	item = c.buildItem(level, err.Error(), custom)
 	itemData := item["data"].(map[string]interface{})
 	itemData["fingerprint"] = stackFingerprint(err.Error(), s)
 	itemData["body"] = map[string]interface{}{
@@ -128,8 +128,8 @@ func (c *rollbarClient) buildTraceItem(level string, err error, s stack, extras 
 	return item
 }
 
-func (c *rollbarClient) buildMessageItem(level string, msg string, extras map[string]string) (item map[string]interface{}) {
-	item = c.buildItem(level, msg, extras)
+func (c *rollbarClient) buildMessageItem(level string, msg string, custom map[string]string) (item map[string]interface{}) {
+	item = c.buildItem(level, msg, custom)
 	itemData := item["data"].(map[string]interface{})
 	itemData["body"] = map[string]interface{}{
 		"message": map[string]interface{}{
@@ -140,7 +140,7 @@ func (c *rollbarClient) buildMessageItem(level string, msg string, extras map[st
 	return item
 }
 
-func (c *rollbarClient) buildItem(level, title string, extras map[string]string) map[string]interface{} {
+func (c *rollbarClient) buildItem(level, title string, custom map[string]string) map[string]interface{} {
 	hostname, _ := os.Hostname()
 
 	return map[string]interface{}{
@@ -159,7 +159,7 @@ func (c *rollbarClient) buildItem(level, title string, extras map[string]string)
 				"name":    NAME,
 				"version": VERSION,
 			},
-			"custom": extras,
+			"custom": custom,
 		},
 	}
 }
