@@ -25,6 +25,11 @@ const (
 )
 
 var (
+	// Endpoint is the default HTTP(S) endpoint that all Rollbar API requests
+	// will be sent to. By default, this is Rollbar's "Items" API endpoint. If
+	// this is blank, no items will be sent to Rollbar.
+	Endpoint = endpoint
+
 	// Rollbar access token for the global client. If this is blank, no items
 	// will be sent to Rollbar.
 	Token = ""
@@ -163,7 +168,7 @@ func (c *rollbarClient) buildItem(level, title string, custom map[string]string)
 // send reports the given item to Rollbar and returns either a UUID for the
 // reported item or an error.
 func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err error) {
-	if len(c.token) == 0 {
+	if len(c.token) == 0 || len(Endpoint) == 0 {
 		return "", nil
 	}
 
@@ -172,7 +177,7 @@ func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err erro
 		return "", err
 	}
 
-	resp, err := http.Post(endpoint, "application/json", bytes.NewReader(jsonBody))
+	resp, err := http.Post(Endpoint, "application/json", bytes.NewReader(jsonBody))
 	if err != nil {
 		return "", err
 	}
