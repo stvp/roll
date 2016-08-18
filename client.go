@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/adler32"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -181,11 +182,12 @@ func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err erro
 	if err != nil {
 		return "", err
 	}
-	defer func() { resp.Body.Close() }()
+	defer func() {
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println(string(body))
 		return "", fmt.Errorf("Rollbar returned %s", resp.Status)
 	}
 
