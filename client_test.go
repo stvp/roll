@@ -3,6 +3,8 @@ package roll
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 )
@@ -17,9 +19,30 @@ func (e *CustomError) Error() string {
 	return e.s
 }
 
-func setup() {
+func setup() func() {
 	Token = os.Getenv("TOKEN")
 	Environment = "test"
+
+	if Token == "" {
+		Token = "test"
+		originalEndpoint := Endpoint
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte(`{"result": {"uuid": "01234567890123456789012345678901"}}`))
+			},
+		))
+
+		Endpoint = server.URL
+
+		return func() {
+			Endpoint = originalEndpoint
+			Token = ""
+			server.Close()
+		}
+	}
+
+	// Assume Token was provided and we want integration tests.
+	return func() {}
 }
 
 // -- Tests
@@ -38,7 +61,9 @@ func TestErrorClass(t *testing.T) {
 }
 
 func TestCritical(t *testing.T) {
-	setup()
+	teardown := setup()
+	defer teardown()
+
 	uuid, err := Critical(errors.New("global critical"), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
@@ -49,7 +74,9 @@ func TestCritical(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	setup()
+	teardown := setup()
+	defer teardown()
+
 	uuid, err := Error(errors.New("global error"), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
@@ -60,7 +87,9 @@ func TestError(t *testing.T) {
 }
 
 func TestWarning(t *testing.T) {
-	setup()
+	teardown := setup()
+	defer teardown()
+
 	uuid, err := Warning(errors.New("global warning"), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
@@ -71,7 +100,9 @@ func TestWarning(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
-	setup()
+	teardown := setup()
+	defer teardown()
+
 	uuid, err := Info("global info", map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
@@ -82,7 +113,9 @@ func TestInfo(t *testing.T) {
 }
 
 func TestDebug(t *testing.T) {
-	setup()
+	teardown := setup()
+	defer teardown()
+
 	uuid, err := Debug("global debug", map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
@@ -93,7 +126,10 @@ func TestDebug(t *testing.T) {
 }
 
 func TestRollbarClientCritical(t *testing.T) {
-	client := New(os.Getenv("TOKEN"), "test")
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
 
 	uuid, err := client.Critical(errors.New("new client critical"), map[string]string{"extras": "true"})
 	if err != nil {
@@ -105,7 +141,10 @@ func TestRollbarClientCritical(t *testing.T) {
 }
 
 func TestRollbarClientError(t *testing.T) {
-	client := New(os.Getenv("TOKEN"), "test")
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
 
 	uuid, err := client.Error(errors.New("new client error"), map[string]string{"extras": "true"})
 	if err != nil {
@@ -117,7 +156,10 @@ func TestRollbarClientError(t *testing.T) {
 }
 
 func TestRollbarClientWarning(t *testing.T) {
-	client := New(os.Getenv("TOKEN"), "test")
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
 
 	uuid, err := client.Warning(errors.New("new client warning"), map[string]string{"extras": "true"})
 	if err != nil {
@@ -129,7 +171,10 @@ func TestRollbarClientWarning(t *testing.T) {
 }
 
 func TestRollbarClientInfo(t *testing.T) {
-	client := New(os.Getenv("TOKEN"), "test")
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
 
 	uuid, err := client.Info("new client info", map[string]string{"extras": "true"})
 	if err != nil {
@@ -141,7 +186,10 @@ func TestRollbarClientInfo(t *testing.T) {
 }
 
 func TestRollbarClientDebug(t *testing.T) {
-	client := New(os.Getenv("TOKEN"), "test")
+	teardown := setup()
+	defer teardown()
+
+	client := New(Token, "test")
 
 	uuid, err := client.Debug("new client debug", map[string]string{"extras": "true"})
 	if err != nil {
