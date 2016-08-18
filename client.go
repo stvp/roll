@@ -15,17 +15,13 @@ import (
 )
 
 const (
-	NAME     = "go-roll"
-	ENDPOINT = "https://api.rollbar.com/api/1/item/"
-	VERSION  = "0.0.1"
-	LANGUAGE = "go"
+	// By default, all Rollbar API requests are sent to this endpoint.
+	endpoint = "https://api.rollbar.com/api/1/item/"
 
-	// Severity levels
-	CRIT  = "critical"
-	ERR   = "error"
-	WARN  = "warning"
-	INFO  = "info"
-	DEBUG = "debug"
+	// Identify this Rollbar client library to the Rollbar API.
+	clientName     = "go-roll"
+	clientVersion  = "0.0.1"
+	clientLanguage = "go"
 )
 
 var (
@@ -63,17 +59,17 @@ func New(token, env string) Client {
 
 func Critical(err error, custom map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(CRIT, err, 3, custom)
+	return client.skipStack("critical", err, 3, custom)
 }
 
 func Error(err error, custom map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(ERR, err, 3, custom)
+	return client.skipStack("error", err, 3, custom)
 }
 
 func Warning(err error, custom map[string]string) (uuid string, e error) {
 	client := rollbarClient{Token, Environment}
-	return client.skipStack(WARN, err, 3, custom)
+	return client.skipStack("warning", err, 3, custom)
 }
 
 func Info(msg string, custom map[string]string) (uuid string, e error) {
@@ -85,24 +81,24 @@ func Debug(msg string, custom map[string]string) (uuid string, e error) {
 }
 
 func (c *rollbarClient) Critical(err error, custom map[string]string) (uuid string, e error) {
-	return c.skipStack(CRIT, err, 3, custom)
+	return c.skipStack("critical", err, 3, custom)
 }
 
 func (c *rollbarClient) Error(err error, custom map[string]string) (uuid string, e error) {
-	return c.skipStack(ERR, err, 3, custom)
+	return c.skipStack("error", err, 3, custom)
 }
 
 func (c *rollbarClient) Warning(err error, custom map[string]string) (uuid string, e error) {
-	return c.skipStack(WARN, err, 3, custom)
+	return c.skipStack("warning", err, 3, custom)
 }
 
 func (c *rollbarClient) Info(msg string, custom map[string]string) (uuid string, e error) {
-	item := c.buildMessageItem(INFO, msg, custom)
+	item := c.buildMessageItem("info", msg, custom)
 	return c.send(item)
 }
 
 func (c *rollbarClient) Debug(msg string, custom map[string]string) (uuid string, e error) {
-	item := c.buildMessageItem(DEBUG, msg, custom)
+	item := c.buildMessageItem("debug", msg, custom)
 	return c.send(item)
 }
 
@@ -151,13 +147,13 @@ func (c *rollbarClient) buildItem(level, title string, custom map[string]string)
 			"level":       level,
 			"timestamp":   time.Now().Unix(),
 			"platform":    runtime.GOOS,
-			"language":    LANGUAGE,
+			"language":    clientLanguage,
 			"server": map[string]interface{}{
 				"host": hostname,
 			},
 			"notifier": map[string]interface{}{
-				"name":    NAME,
-				"version": VERSION,
+				"name":    clientName,
+				"version": clientVersion,
 			},
 			"custom": custom,
 		},
@@ -176,7 +172,7 @@ func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err erro
 		return "", err
 	}
 
-	resp, err := http.Post(ENDPOINT, "application/json", bytes.NewReader(jsonBody))
+	resp, err := http.Post(endpoint, "application/json", bytes.NewReader(jsonBody))
 	if err != nil {
 		return "", err
 	}
