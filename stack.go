@@ -40,17 +40,20 @@ type rollbarFrames []rollbarFrame
 func buildRollbarFrames(callers []uintptr) (frames rollbarFrames) {
 	frames = rollbarFrames{}
 
-	callerFrames := runtime.CallersFrames(callers)
-	for {
-		frame, more := callerFrames.Next()
-		frames = append(frames, rollbarFrame{
-			Filename: scrubFile(frame.File),
-			Method:   scrubFunction(frame.Function),
-			Line:     frame.Line,
-		})
-		if !more {
-			break
+	// 2016-08-24 - runtime.CallersFrames was added in Go 1.7, which should
+	// replace the following code when roll is able to require Go 1.7+.
+	for _, caller := range callers {
+		frame := rollbarFrame{
+			Filename: "???",
+			Method:   "???",
 		}
+		if fn := runtime.FuncForPC(caller); fn != nil {
+			name, line := fn.FileLine(caller)
+			frame.Filename = scrubFile(name)
+			frame.Line = line
+			frame.Method = scrubFunction(fn.Name())
+		}
+		frames = append(frames, frame)
 	}
 
 	return frames
