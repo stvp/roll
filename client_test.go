@@ -200,13 +200,13 @@ func TestRollbarClientDebug(t *testing.T) {
 	}
 }
 
-func TestRollbarClientCriticalWithStack(t *testing.T) {
+func TestRollbarClientCriticalStack(t *testing.T) {
 	teardown := setup()
 	defer teardown()
 
 	client := New(Token, "test")
 
-	uuid, err := client.CriticalWithStack(errors.New("new client critical"), map[string]string{"extras": "true"}, testStack())
+	uuid, err := client.CriticalStack(errors.New("new client critical"), getCallers(0), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -215,13 +215,13 @@ func TestRollbarClientCriticalWithStack(t *testing.T) {
 	}
 }
 
-func TestRollbarClientErrorWithStack(t *testing.T) {
+func TestRollbarClientErrorStack(t *testing.T) {
 	teardown := setup()
 	defer teardown()
 
 	client := New(Token, "test")
 
-	uuid, err := client.ErrorWithStack(errors.New("new client error"), map[string]string{"extras": "true"}, testStack())
+	uuid, err := client.ErrorStack(errors.New("new client error"), getCallers(0), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -230,13 +230,13 @@ func TestRollbarClientErrorWithStack(t *testing.T) {
 	}
 }
 
-func TestRollbarClientWarningWithStack(t *testing.T) {
+func TestRollbarClientWarningStack(t *testing.T) {
 	teardown := setup()
 	defer teardown()
 
 	client := New(Token, "test")
 
-	uuid, err := client.WarningWithStack(errors.New("new client warning"), map[string]string{"extras": "true"}, testStack())
+	uuid, err := client.WarningStack(errors.New("new client warning"), getCallers(0), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
 	}
