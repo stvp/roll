@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	knownFilePathPatterns []string = []string{
+	knownFilePathPatterns = []string{
 		"github.com/",
 		"code.google.com/",
 		"bitbucket.org/",
@@ -25,7 +25,7 @@ type frame struct {
 	Line     int    `json:"lineno"`
 }
 
-func buildStack(skip int) stack {
+func walkStack(skip int) stack {
 	s := make(stack, 0)
 
 	for i := skip; ; i++ {
@@ -37,6 +37,20 @@ func buildStack(skip int) stack {
 		s = append(s, frame{file, functionName(pc), line})
 	}
 
+	return s
+}
+
+func buildStack(ptrs []uintptr) stack {
+	s := make(stack, 0, len(ptrs))
+	for _, f := range ptrs {
+		pc := uintptr(f) - 1
+		if fn := runtime.FuncForPC(pc); fn == nil {
+			s = append(s, frame{"unknown", "unknown", -1})
+		} else {
+			file, line := fn.FileLine(pc)
+			s = append(s, frame{shortenFilePath(file), functionName(pc), line})
+		}
+	}
 	return s
 }
 
