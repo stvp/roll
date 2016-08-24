@@ -21,7 +21,7 @@ const (
 
 	// Identify this Rollbar client library to the Rollbar API.
 	clientName     = "go-roll"
-	clientVersion  = "0.0.1"
+	clientVersion  = "0.1.0"
 	clientLanguage = "go"
 )
 
