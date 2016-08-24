@@ -1,3 +1,9 @@
+0.1.1 - August 24th, 2016
+=========================
+
+* Fix Go 1.6 support by removing call to runtime.CallersFrames, which was added
+	in Go 1.7.
+
 0.1.0 - August 23rd, 2016
 =========================
 
