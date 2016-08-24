@@ -14,86 +14,83 @@ var (
 		"code.google.com/",
 		"bitbucket.org/",
 		"launchpad.net/",
+		"gopkg.in/",
 	}
 )
 
-type stack []frame
+func getCallers(skip int) (pc []uintptr) {
+	pc = make([]uintptr, 1000)
+	i := runtime.Callers(skip+1, pc)
+	return pc[0:i]
+}
 
-type frame struct {
+// -- rollbarFrames
+
+type rollbarFrame struct {
 	Filename string `json:"filename"`
 	Method   string `json:"method"`
 	Line     int    `json:"lineno"`
 }
 
-func walkStack(skip int) stack {
-	s := make(stack, 0)
+type rollbarFrames []rollbarFrame
 
-	for i := skip; ; i++ {
-		pc, file, line, ok := runtime.Caller(i)
-		if !ok {
+// buildRollbarFrames takes a slice of function pointers and returns a Rollbar
+// API payload containing the filename, method name, and line number of each
+// function.
+func buildRollbarFrames(callers []uintptr) (frames rollbarFrames) {
+	frames = rollbarFrames{}
+
+	callerFrames := runtime.CallersFrames(callers)
+	for {
+		frame, more := callerFrames.Next()
+		frames = append(frames, rollbarFrame{
+			Filename: scrubFile(frame.File),
+			Method:   scrubFunction(frame.Function),
+			Line:     frame.Line,
+		})
+		if !more {
 			break
 		}
-		file = shortenFilePath(file)
-		s = append(s, frame{file, functionName(pc), line})
 	}
 
-	return s
+	return frames
 }
 
-func buildStack(ptrs []uintptr) stack {
-	s := make(stack, 0, len(ptrs))
-	for _, f := range ptrs {
-		pc := uintptr(f) - 1
-		if fn := runtime.FuncForPC(pc); fn == nil {
-			s = append(s, frame{"unknown", "unknown", -1})
-		} else {
-			file, line := fn.FileLine(pc)
-			s = append(s, frame{shortenFilePath(file), functionName(pc), line})
-		}
-	}
-	return s
-}
-
-// Create a fingerprint that uniquely identify a given message. We use the full
-// callstack, including file names. That ensure that there are no false
-// duplicates but also means that after changing the code (adding/removing
-// lines), the fingerprints will change. It's a trade-off.
-func stackFingerprint(title string, s stack) string {
+// fingerprint returns a checksum that uniquely identifies a stacktrace by the
+// filename, method name, and line number of every frame in the stack.
+func (f rollbarFrames) fingerprint(title string) string {
 	hash := crc32.NewIEEE()
 	fmt.Fprintf(hash, "%s", title)
-	for _, frame := range s {
+	for _, frame := range f {
 		fmt.Fprintf(hash, "%s%s%d", frame.Filename, frame.Method, frame.Line)
 	}
 	return fmt.Sprintf("%x", hash.Sum32())
 }
 
-// Remove un-needed information from the source file path. This makes them
-// shorter in Rollbar UI as well as making them the same, regardless of the
-// machine the code was compiled on.
+// -- Helpers
+
+// scrubFile removes unneeded information from the path of a source file. This
+// makes them shorter in Rollbar UI as well as making them the same, regardless
+// of the machine the code was compiled on.
 //
-// Examples:
-//   /usr/local/go/src/pkg/runtime/proc.c -> pkg/runtime/proc.c
-//   /home/foo/go/src/github.com/stvp/roll/rollbar.go -> stvp/roll/rollbar.go
-func shortenFilePath(s string) string {
-	idx := strings.Index(s, "/src/pkg/")
-	if idx != -1 {
-		return s[idx+5:]
-	}
+// Example:
+//   /home/foo/go/src/github.com/stvp/roll/rollbar.go -> github.com/stvp/roll/rollbar.go
+func scrubFile(s string) string {
+	var i int
 	for _, pattern := range knownFilePathPatterns {
-		idx = strings.Index(s, pattern)
-		if idx != -1 {
-			return s[idx:]
+		i = strings.Index(s, pattern)
+		if i != -1 {
+			return s[i:]
 		}
 	}
 	return s
 }
 
-func functionName(pc uintptr) string {
-	fn := runtime.FuncForPC(pc)
-	if fn == nil {
-		return "???"
-	}
-	name := fn.Name()
+// scrubFunction removes unneeded information from the full name of a function.
+//
+// Example:
+//   github.com/stvp/roll.getCallers -> roll.getCallers
+func scrubFunction(name string) string {
 	end := strings.LastIndex(name, string(os.PathSeparator))
 	return name[end+1 : len(name)]
 }

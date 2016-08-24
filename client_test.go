@@ -206,7 +206,7 @@ func TestRollbarClientCriticalStack(t *testing.T) {
 
 	client := New(Token, "test")
 
-	uuid, err := client.CriticalStack(errors.New("new client critical"), testStack(), map[string]string{"extras": "true"})
+	uuid, err := client.CriticalStack(errors.New("new client critical"), getCallers(0), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -221,7 +221,7 @@ func TestRollbarClientErrorStack(t *testing.T) {
 
 	client := New(Token, "test")
 
-	uuid, err := client.ErrorStack(errors.New("new client error"), testStack(), map[string]string{"extras": "true"})
+	uuid, err := client.ErrorStack(errors.New("new client error"), getCallers(0), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -236,7 +236,7 @@ func TestRollbarClientWarningStack(t *testing.T) {
 
 	client := New(Token, "test")
 
-	uuid, err := client.WarningStack(errors.New("new client warning"), testStack(), map[string]string{"extras": "true"})
+	uuid, err := client.WarningStack(errors.New("new client warning"), getCallers(0), map[string]string{"extras": "true"})
 	if err != nil {
 		t.Error(err)
 	}

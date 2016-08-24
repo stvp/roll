@@ -1,108 +1,102 @@
 package roll
 
 import (
-	"runtime"
 	"strings"
 	"testing"
 )
 
-func TestWalkStack(t *testing.T) {
-	frame := walkStack(1)[0]
-	if !strings.HasSuffix(frame.Filename, "/roll/stack_test.go") {
-		t.Errorf("got: %s", frame.Filename)
+func TestBuildRollbarFrames(t *testing.T) {
+	frames := buildRollbarFrames(getCallers(0))
+
+	if len(frames) != 4 {
+		t.Fatalf("expected 4 frames, got %d", len(frames))
 	}
-	if frame.Method != "roll.TestWalkStack" {
-		t.Errorf("got: %s", frame.Method)
+
+	if !strings.Contains(frames[0].Filename, "github.com/stvp/roll/stack.go") {
+		t.Errorf("expected %#v, got %#v", "github.com/stvp/roll/stack.go", frames[0].Filename)
 	}
-	if frame.Line != 10 {
-		t.Errorf("got: %d", frame.Line)
+
+	if !strings.Contains(frames[0].Method, "roll.getCallers") {
+		t.Errorf("expected %#v, got %#v", "roll.getCallers", frames[0].Method)
 	}
 }
 
-func TestBuildStack(t *testing.T) {
-	frame := buildStack(testStack())[1] // skip the testStack frame
-	if !strings.HasSuffix(frame.Filename, "/roll/stack_test.go") {
-		t.Errorf("got: %s", frame.Filename)
-	}
-	if frame.Method != "roll.TestBuildStack" {
-		t.Errorf("got: %s", frame.Method)
-	}
-	if frame.Line != 23 {
-		t.Errorf("got: %d", frame.Line)
-	}
-}
-
-func TestStackFingerprint(t *testing.T) {
+func TestRollbarFramesFingerprint(t *testing.T) {
 	tests := []struct {
 		Fingerprint string
 		Title       string
-		Stack       stack
+		Frames      rollbarFrames
 	}{
 		{
 			"c9dfdc0e",
 			"broken",
-			stack{
-				frame{"foo.go", "Oops", 1},
+			rollbarFrames{
+				{"foo.go", "Oops", 1},
 			},
 		},
 		{
 			"21037bf5",
 			"very broken",
-			stack{
-				frame{"foo.go", "Oops", 1},
+			rollbarFrames{
+				{"foo.go", "Oops", 1},
 			},
 		},
 		{
 			"50d68db4",
 			"broken",
-			stack{
-				frame{"foo.go", "Oops", 2},
+			rollbarFrames{
+				{"foo.go", "Oops", 2},
 			},
 		},
 		{
 			"b341ee82",
 			"broken",
-			stack{
-				frame{"foo.go", "Oops", 1},
-				frame{"foo.go", "Oops", 2},
+			rollbarFrames{
+				{"foo.go", "Oops", 1},
+				{"foo.go", "Oops", 2},
 			},
 		},
 	}
 
 	for i, test := range tests {
-		fp := stackFingerprint(test.Title, test.Stack)
+		fp := test.Frames.fingerprint(test.Title)
 		if fp != test.Fingerprint {
 			t.Errorf("tests[%d]: got %s", i, fp)
 		}
 	}
 }
 
-func TestShortenFilePath(t *testing.T) {
+func TestScrubFile(t *testing.T) {
 	tests := []struct {
 		Given    string
 		Expected string
 	}{
 		{"", ""},
 		{"foo.go", "foo.go"},
-		{"/usr/local/go/src/pkg/runtime/proc.c", "pkg/runtime/proc.c"},
 		{"/home/foo/go/src/github.com/stvp/rollbar.go", "github.com/stvp/rollbar.go"},
+		{"/home/foo/go/src/gopkg.in/yaml.v1/encode.go", "gopkg.in/yaml.v1/encode.go"},
 	}
 	for i, test := range tests {
-		got := shortenFilePath(test.Given)
+		got := scrubFile(test.Given)
 		if got != test.Expected {
 			t.Errorf("tests[%d]: got %s", i, got)
 		}
 	}
 }
 
-func testStack() []uintptr {
-	var s []uintptr
-	for i := 0; ; i++ {
-		pc, _, _, ok := runtime.Caller(i)
-		if !ok {
-			break
-		}
-		s = append(s, pc)
+func TestScrubFunction(t *testing.T) {
+	tests := []struct {
+		Given    string
+		Expected string
+	}{
+		{"", ""},
+		{"roll.getCallers", "roll.getCallers"},
+		{"github.com/stvp/roll.getCallers", "roll.getCallers"},
 	}
-	return s
+	for i, test := range tests {
+		got := scrubFunction(test.Given)
+		if got != test.Expected {
+			t.Errorf("tests[%d]: got %s", i, got)
+		}
+	}
 }
