@@ -59,7 +59,7 @@ func TestRollbarFramesFingerprint(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		fp := test.Frames.fingerprint(test.Title)
+		fp := test.Frames.fingerprint()
 		if fp != test.Fingerprint {
 			t.Errorf("tests[%d]: got %s", i, fp)
 		}

@@ -139,7 +139,7 @@ func (c *rollbarClient) buildTraceItem(level string, err error, callers []uintpt
 	stack := buildRollbarFrames(callers)
 	item = c.buildItem(level, err.Error(), custom)
 	itemData := item["data"].(map[string]interface{})
-	itemData["fingerprint"] = stack.fingerprint(err.Error())
+	itemData["fingerprint"] = stack.fingerprint()
 	itemData["body"] = map[string]interface{}{
 		"trace": map[string]interface{}{
 			"frames": stack,

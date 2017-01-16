@@ -61,7 +61,7 @@ func buildRollbarFrames(callers []uintptr) (frames rollbarFrames) {
 
 // fingerprint returns a checksum that uniquely identifies a stacktrace by the
 // filename, method name, and line number of every frame in the stack.
-func (f rollbarFrames) fingerprint(title string) string {
+func (f rollbarFrames) fingerprint() string {
 	hash := crc32.NewIEEE()
 	for _, frame := range f {
 		fmt.Fprintf(hash, "%s%s%d", frame.Filename, frame.Method, frame.Line)
