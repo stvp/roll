@@ -28,28 +28,28 @@ func TestRollbarFramesFingerprint(t *testing.T) {
 		Frames      rollbarFrames
 	}{
 		{
-			"c9dfdc0e",
+			"9344290d",
 			"broken",
 			rollbarFrames{
 				{"foo.go", "Oops", 1},
 			},
 		},
 		{
-			"21037bf5",
+			"9344290d",
 			"very broken",
 			rollbarFrames{
 				{"foo.go", "Oops", 1},
 			},
 		},
 		{
-			"50d68db4",
+			"a4d78b7",
 			"broken",
 			rollbarFrames{
 				{"foo.go", "Oops", 2},
 			},
 		},
 		{
-			"b341ee82",
+			"50e0fcb3",
 			"broken",
 			rollbarFrames{
 				{"foo.go", "Oops", 1},

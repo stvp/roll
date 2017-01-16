@@ -63,7 +63,6 @@ func buildRollbarFrames(callers []uintptr) (frames rollbarFrames) {
 // filename, method name, and line number of every frame in the stack.
 func (f rollbarFrames) fingerprint(title string) string {
 	hash := crc32.NewIEEE()
-	fmt.Fprintf(hash, "%s", title)
 	for _, frame := range f {
 		fmt.Fprintf(hash, "%s%s%d", frame.Filename, frame.Method, frame.Line)
 	}
