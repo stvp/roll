@@ -40,6 +40,8 @@ Verify the reported errors manually in the Rollbar dashboard.
 Contributors
 ============
 
+* @challiwill
+* @tysonmote
 * @apg
 
 This library was forked from [stvp/rollbar](https://github.com/stvp/rollbar),
